@@ -520,6 +520,30 @@ fn closed_stops_stay_on_the_list_marked() {
     d.set_closed_stops(&["rathaus".into()], "via Kirchweg");
     let (_, _, stops, _) = duty_parts(Some(&d));
     assert_eq!(stops.iter().map(|s| s.closed.as_deref()).collect::<Vec<_>>(), [None, Some("via Kirchweg"), None]);
+    let mut n = Navigator::new(true, 0.85, "bottom-left");
+    d.next_stop = 2;
+    n.set_completed_stops(Some(&d));
+    assert_eq!(n.completed_stops.iter().map(|s| s.name.as_str()).collect::<Vec<_>>(), ["Markt", "Rathaus"]);
+    d.next_stop = 1;
+    n.set_completed_stops(Some(&d));
+    assert_eq!(n.completed_stops.len(), 1, "moving back restores upcoming stops");
+    n.set_completed_stops(None);
+    assert!(n.completed_stops.is_empty());
+}
+
+#[test]
+fn original_trip_route_survives_rerouting_and_resets_for_a_new_trip() {
+    let mut n = Navigator::new(true, 0.85, "bottom-left");
+    n.set_route("trip1", vec![0, 1, 2], true, 1);
+    n.route.lanes = vec![4, 2];
+    n.route.on_route = false;
+    n.set_route("trip1", vec![0, 1, 2, 3], true, 2);
+    assert_eq!(n.route.lanes, vec![4, 2]);
+    assert_eq!(n.route.original_lanes, vec![0, 1, 2, 3]);
+    n.set_route("trip2", vec![5, 6], true, 2);
+    assert_eq!(n.route.original_lanes, vec![5, 6]);
+    n.clear_route();
+    assert!(n.route.original_lanes.is_empty());
 }
 
 #[test]
@@ -694,3 +718,42 @@ fn the_remote_picture_keeps_its_shape_within_the_size_cap() {
     assert_eq!(remote_picture::fit(10, 0), (64, 64));
 }
 
+#[test]
+fn minimap_route_cache_waits_for_three_metres_of_progress() {
+    use super::panel::route_position_changed;
+
+    let cached = 12.0;
+    assert!(!route_position_changed(cached, 12.0));
+    assert!(!route_position_changed(cached, 12.5));
+    assert!(!route_position_changed(cached, 14.99));
+    assert!(route_position_changed(cached, 15.0));
+}
+
+#[test]
+fn minimap_route_cache_measures_from_the_last_draw_in_both_directions() {
+    use super::panel::route_position_changed;
+
+    let cached = 14.99;
+    assert!(!route_position_changed(cached, 15.01));
+    assert!(!route_position_changed(cached, 17.98));
+    assert!(route_position_changed(cached, 18.0));
+    assert!(!route_position_changed(cached, 12.01));
+    assert!(route_position_changed(cached, 11.98));
+}
+
+#[test]
+fn minimap_route_cache_accumulates_small_steps_without_rebuilding_each_frame() {
+    use super::panel::route_position_changed;
+
+    let mut cached = 0.0;
+    let mut rebuilds = 0;
+    for frame in 1..=600 {
+        let current = frame as f32 * 0.25;
+        if route_position_changed(cached, current) {
+            cached = current;
+            rebuilds += 1;
+        }
+        assert!((current - cached).abs() < 3.0);
+    }
+    assert_eq!(rebuilds, 50);
+}

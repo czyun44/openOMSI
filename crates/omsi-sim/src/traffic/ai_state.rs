@@ -455,7 +455,17 @@ impl AiState {
         if l.kind == LaneKind::Street && net.reach.len() == net.lanes.len() {
             let through: Vec<usize> = choices.iter().copied().filter(|&n| net.reach[n] >= DEAD_END).collect();
             if !through.is_empty() {
-                choices = through;
+                // (a way that is a queue is no way on, where another one is clear: a left-turn
+                // lane that fills up leaves the cars of the straight way, which ends within a
+                // few hundred metres, to take it)
+                let clear = |n: usize| net.queue_on_way(n, QUEUE_LOOK) < QUEUE_FULL;
+                let open_through: Vec<usize> = through.iter().copied().filter(|&n| clear(n)).collect();
+                if !open_through.is_empty() {
+                    choices = open_through;
+                } else {
+                    let others: Vec<usize> = choices.iter().copied().filter(|n| !through.contains(n) && clear(*n)).collect();
+                    choices = if others.is_empty() { through } else { others };
+                }
             }
         }
         // Nothing open on but lanes of density 0 (a junction whose paths the map gives no

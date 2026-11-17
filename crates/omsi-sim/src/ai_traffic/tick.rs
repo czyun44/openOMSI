@@ -147,6 +147,7 @@ impl TrafficSim {
         }
         self.berths_begin_step();
         let (by_lane, coming, mut reservations) = self.occupancy();
+        self.refresh_queue_load();
         self.request_lights(player);
         let walkers = self.walker_requests();
         self.run_light_programs(dt);
@@ -196,6 +197,19 @@ impl TrafficSim {
             let c = self.take_off(i, Removal::Finished);
             // its sounds stop and the renders go back to the world at the next sync
             self.retired.push(c.id);
+        }
+    }
+
+    /// `Network::load`: the metres of vehicles standing on each lane (under 2 m/s), a gap
+    /// each, for the drivers' choice of way.
+    fn refresh_queue_load(&mut self) {
+        let n = self.net.lanes.len();
+        self.net.load.clear();
+        self.net.load.resize(n, 0.0);
+        for c in &self.cars {
+            if c.state.speed < 2.0 && c.state.lane < n && c.park.is_none() {
+                self.net.load[c.state.lane] += c.state.front + c.state.rear + 1.5;
+            }
         }
     }
 
