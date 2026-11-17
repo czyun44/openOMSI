@@ -53,7 +53,11 @@ impl Traffic {
             if omsi_cfg::flags::OMSI_DEBUG_LANES.is_set() {
                 for i in (0..net.lanes.len()).filter(|&i| net.leaves_map(i)) {
                     let e = net.lanes[i].end();
-                    log::info!("traffic: lane {i} runs out of the map at ({:.1}, {:.1})", e.x, e.y);
+                    log::info!(
+                        "traffic: lane {i} runs out of the map at ({:.1}, {:.1})",
+                        e.x,
+                        e.y
+                    );
                 }
             }
         }
