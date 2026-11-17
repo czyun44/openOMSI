@@ -74,7 +74,7 @@ pub const DEAD_END: f32 = 500.0;
 pub const QUEUE_LOOK: f32 = 110.0;
 /// A way whose first `QUEUE_LOOK` metres are this full of standing vehicles is a queue, not a
 /// way on, to a driver who has another one.
-pub const QUEUE_FULL: f32 = 0.6;
+pub const QUEUE_FULL: f32 = 0.3;
 
 /// Where two lanes of a junction meet.
 #[derive(Debug, Clone, Copy, PartialEq)]
