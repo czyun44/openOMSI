@@ -703,6 +703,29 @@ impl Network {
         marked
     }
 
+    /// How much of the first `look` metres of the way that starts with lane `from` is taken
+    /// by standing vehicles (0 empty, 1 full): where the way forks the busiest branch counts.
+    pub fn queue_on_way(&self, from: usize, look: f32) -> f32 {
+        let (mut load, mut length, mut lane) = (0.0f32, 0.0f32, from);
+        let mut seen = 0;
+        while length < look && seen < 12 {
+            let l = &self.lanes[lane];
+            load += self.load.get(lane).copied().unwrap_or(0.0);
+            length += l.length();
+            seen += 1;
+            // (at a fork the way on is the fuller branch: the queue is what is asked for)
+            let busiest = l.next.iter().copied().max_by(|&a, &b| {
+                let (la, lb) = (self.load.get(a).copied().unwrap_or(0.0), self.load.get(b).copied().unwrap_or(0.0));
+                la.total_cmp(&lb)
+            });
+            match busiest {
+                Some(n) if n != lane => lane = n,
+                _ => break,
+            }
+        }
+        if length <= 0.0 { 0.0 } else { (load / length).min(1.0) }
+    }
+
     /// `reach` of every lane: its length plus the best reach of the lanes after it. The lanes
     /// are settled from the dead ends backwards (a lane once all the lanes after it are); a
     /// lane that never settles has a loop ahead of it and can be driven on for ever.

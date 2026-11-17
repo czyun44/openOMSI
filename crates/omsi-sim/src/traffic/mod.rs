@@ -58,6 +58,9 @@ pub struct Network {
     /// Per lane: how far a vehicle can drive from its start before the network ends (m, at
     /// most `REACH_MAX`; lanes closed to cars do not count as a way on).
     pub reach: Vec<f32>,
+    /// Per lane: the metres of standing vehicles on it, with a gap each (refreshed every
+    /// step by the traffic sim), for a driver's choice of way at a fork.
+    pub load: Vec<f32>,
     /// The map drives on the left (`global.cfg` `[lht]`): priority to the left, the
     /// oncoming lane on the right, turning right across the oncoming traffic.
     pub left_hand: bool,
@@ -67,6 +70,11 @@ pub struct Network {
 pub const REACH_MAX: f32 = 600.0;
 /// A way on that ends within this distance is a dead end to a driver who has a choice (m).
 pub const DEAD_END: f32 = 500.0;
+/// A way is looked at this far on for a queue, when a driver chooses between ways (m).
+pub const QUEUE_LOOK: f32 = 110.0;
+/// A way whose first `QUEUE_LOOK` metres are this full of standing vehicles is a queue, not a
+/// way on, to a driver who has another one.
+pub const QUEUE_FULL: f32 = 0.6;
 
 /// Where two lanes of a junction meet.
 #[derive(Debug, Clone, Copy, PartialEq)]
