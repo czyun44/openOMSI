@@ -50,6 +50,12 @@ impl Traffic {
         let exits = net.apply_edge_exits();
         if exits > 0 {
             log::info!("traffic: {exits} lanes run out of the map (cars leave there)");
+            if omsi_cfg::flags::OMSI_DEBUG_LANES.is_set() {
+                for i in (0..net.lanes.len()).filter(|&i| net.leaves_map(i)) {
+                    let e = net.lanes[i].end();
+                    log::info!("traffic: lane {i} runs out of the map at ({:.1}, {:.1})", e.x, e.y);
+                }
+            }
         }
         // which rail lane is tram track, railway or metro, and how fast its curves allow
         let rail_lanes = omsi_sim::rail::classify(&mut net, &{
