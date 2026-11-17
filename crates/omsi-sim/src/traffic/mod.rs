@@ -10,6 +10,7 @@ use glam::{DVec2, DVec3};
 use hashbrown::HashMap;
 
 mod ai_state;
+mod edge;
 mod extend;
 mod lane;
 mod lights;
@@ -58,6 +59,10 @@ pub struct Network {
     /// Per lane: how far a vehicle can drive from its start before the network ends (m, at
     /// most `REACH_MAX`; lanes closed to cars do not count as a way on).
     pub reach: Vec<f32>,
+    /// The tiles the map has, and how big they are (m): a way that runs out into a tile
+    /// the map does not have leaves the map, as OMSI's own traffic does there (see
+    /// `Network::leaves_map`). None: not known, no way is an exit.
+    pub map_tiles: Option<(hashbrown::HashSet<(i32, i32)>, f64)>,
     /// The map drives on the left (`global.cfg` `[lht]`): priority to the left, the
     /// oncoming lane on the right, turning right across the oncoming traffic.
     pub left_hand: bool,
@@ -67,6 +72,8 @@ pub struct Network {
 pub const REACH_MAX: f32 = 600.0;
 /// A way on that ends within this distance is a dead end to a driver who has a choice (m).
 pub const DEAD_END: f32 = 500.0;
+/// A lane that ends within this distance of a tile the map does not have leaves the map (m).
+pub const EDGE_LOOK: f64 = 150.0;
 
 /// Where two lanes of a junction meet.
 #[derive(Debug, Clone, Copy, PartialEq)]
